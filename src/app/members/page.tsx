@@ -13,6 +13,18 @@ function Icon({ name, size = 24, className = '' }: { name: string; size?: number
   );
 }
 
+// ---------- 次年度末フィルター ----------
+const NEXT_FY_MONTHS = [
+  '2026年4月', '2026年5月', '2026年6月', '2026年7月', '2026年8月', '2026年9月',
+  '2026年10月', '2026年11月', '2026年12月', '2027年1月', '2027年2月', '2027年3月',
+];
+
+function countByType(members: Member[], type: string) {
+  return members.filter(
+    (m) => m.transferType === type && NEXT_FY_MONTHS.includes(m.transferDate)
+  ).length;
+}
+
 // ---------- 組織マスタ ----------
 const CENTER_OPTIONS = ['開発センター', '地域センター', '品質センター'];
 const DEPT_OPTIONS: Record<string, string[]> = {
@@ -28,11 +40,12 @@ interface Member {
   name: string;
   dept: string;
   rank: string;
-  transferType: string; // 転出/転入/退職 (内部管理用)
+  transferType: string;    // 転出/転入/退職 (内部管理用)
   destDept: string;
   transferDate: string;
   comment: string;
-  approvalStatus: string; // 承認ステータス（表示用）
+  approvalStatus: string;  // 承認ステータス（表示用）
+  retirementDate: string;  // 定年退職予定年月
 }
 
 interface PlanForm {
@@ -57,45 +70,46 @@ const EMPTY_FORM: PlanForm = {
 
 // ---------- モックデータ ----------
 const INIT_MEMBERS: Member[] = [
-  { id: '1',  empNo: 'EMP-001', name: '佐藤 一郎',   dept: '第一開発部', rank: '主任',   transferType: '転出', destDept: '第二開発部',  transferDate: '2026年7月', comment: 'スキル活用のため',   approvalStatus: '承認申請中' },
-  { id: '2',  empNo: 'EMP-002', name: '田中 花子',   dept: '第一開発部', rank: '一般',   transferType: '退職', destDept: '—',           transferDate: '2026年6月', comment: '一身上の都合',       approvalStatus: '下書き保存' },
-  { id: '3',  empNo: 'EMP-003', name: '高橋 達大',   dept: '第一開発部', rank: '一般',   transferType: '',     destDept: '',            transferDate: '',          comment: '',                   approvalStatus: '' },
-  { id: '4',  empNo: 'EMP-004', name: '山田 悠明',   dept: '地域管理部', rank: '主任',   transferType: '転入', destDept: '第一開発部',   transferDate: '2026年7月', comment: '技術者受入要請',     approvalStatus: '承認済み' },
-  { id: '5',  empNo: 'EMP-005', name: '中村 大樹',   dept: '第一開発部', rank: '一般',   transferType: '',     destDept: '',            transferDate: '',          comment: '',                   approvalStatus: '' },
-  { id: '6',  empNo: 'EMP-006', name: '鈴木 健二',   dept: '第一開発部', rank: '主任',   transferType: '転出', destDept: '品質管理部',   transferDate: '2026年7月', comment: '品質部門強化のため', approvalStatus: '下書き保存' },
-  { id: '7',  empNo: 'EMP-007', name: '伊藤 美咲',   dept: '第一開発部', rank: '一般',   transferType: '',     destDept: '',            transferDate: '',          comment: '',                   approvalStatus: '' },
-  { id: '8',  empNo: 'EMP-008', name: '渡辺 浩二',   dept: '第一開発部', rank: '課長',   transferType: '',     destDept: '',            transferDate: '',          comment: '',                   approvalStatus: '' },
-  { id: '9',  empNo: 'EMP-009', name: '松本 真由美', dept: '第一開発部', rank: '一般',   transferType: '退職', destDept: '—',           transferDate: '2026年8月', comment: '産休・退職',         approvalStatus: '承認申請中' },
-  { id: '10', empNo: 'EMP-010', name: '小林 純',     dept: '第一開発部', rank: '一般',   transferType: '',     destDept: '',            transferDate: '',          comment: '',                   approvalStatus: '' },
-  { id: '11', empNo: 'EMP-011', name: '加藤 裕',     dept: '第一開発部', rank: '主任',   transferType: '転出', destDept: 'インフラ部',   transferDate: '2026年9月', comment: '部門横断プロジェクト対応', approvalStatus: '差戻中' },
-  { id: '12', empNo: 'EMP-012', name: '中島 由紀',   dept: '第一開発部', rank: '一般',   transferType: '',     destDept: '',            transferDate: '',          comment: '',                   approvalStatus: '' },
-  { id: '13', empNo: 'EMP-013', name: '前田 光',     dept: '第一開発部', rank: '一般',   transferType: '転入', destDept: '第一開発部',   transferDate: '2026年4月', comment: '新規プロジェクト補充', approvalStatus: '承認申請中' },
-  { id: '14', empNo: 'EMP-014', name: '藤田 誠',     dept: '第一開発部', rank: '一般',   transferType: '',     destDept: '',            transferDate: '',          comment: '',                   approvalStatus: '' },
-  { id: '15', empNo: 'EMP-015', name: '岡田 恵',     dept: '第一開発部', rank: '副主任', transferType: '転出', destDept: '西日本地域部', transferDate: '2026年9月', comment: '地域強化施策',       approvalStatus: '下書き保存' },
+  { id: '1',  empNo: 'EMP-001', name: '佐藤 一郎',   dept: '第一開発部', rank: '主任',   transferType: '転出（異動）', destDept: '第二開発部',  transferDate: '2026年7月', comment: 'スキル活用のため',         approvalStatus: '承認申請中', retirementDate: '2031年3月' },
+  { id: '2',  empNo: 'EMP-002', name: '田中 花子',   dept: '第一開発部', rank: '一般',   transferType: '退職',         destDept: '—',           transferDate: '2026年6月', comment: '一身上の都合',             approvalStatus: '下書き保存',  retirementDate: '' },
+  { id: '3',  empNo: 'EMP-003', name: '高橋 達大',   dept: '第一開発部', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '2038年3月' },
+  { id: '4',  empNo: 'EMP-004', name: '山田 悠明',   dept: '第一開発部', rank: '主任',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '2029年3月' },
+  { id: '5',  empNo: 'EMP-005', name: '中村 大樹',   dept: '第一開発部', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '' },
+  { id: '6',  empNo: 'EMP-006', name: '鈴木 健二',   dept: '第一開発部', rank: '主任',   transferType: '転出（異動）', destDept: '品質管理部',  transferDate: '2026年7月', comment: '品質部門強化のため',       approvalStatus: '下書き保存',  retirementDate: '2027年3月' },
+  { id: '7',  empNo: 'EMP-007', name: '伊藤 美咲',   dept: '第一開発部', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '' },
+  { id: '8',  empNo: 'EMP-008', name: '渡辺 浩二',   dept: '第一開発部', rank: '課長',   transferType: '退職',         destDept: '—',           transferDate: '2026年9月', comment: '定年退職',                 approvalStatus: '下書き保存',  retirementDate: '2026年9月' },
+  { id: '9',  empNo: 'EMP-009', name: '松本 真由美', dept: '第一開発部', rank: '一般',   transferType: '退職',         destDept: '—',           transferDate: '2026年8月', comment: '産休・退職',               approvalStatus: '承認申請中', retirementDate: '' },
+  { id: '10', empNo: 'EMP-010', name: '小林 純',     dept: '第一開発部', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '2033年3月' },
+  { id: '11', empNo: 'EMP-011', name: '加藤 裕',     dept: '第一開発部', rank: '主任',   transferType: '転出（異動）', destDept: 'インフラ部',  transferDate: '2026年9月', comment: '部門横断プロジェクト対応', approvalStatus: '差戻中',     retirementDate: '2028年3月' },
+  { id: '12', empNo: 'EMP-012', name: '中島 由紀',   dept: '第一開発部', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '' },
+  { id: '13', empNo: 'EMP-013', name: '前田 光',     dept: '第一開発部', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '' },
+  { id: '14', empNo: 'EMP-014', name: '藤田 誠',     dept: '第一開発部', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '2030年3月' },
+  { id: '15', empNo: 'EMP-015', name: '岡田 恵',     dept: '第一開発部', rank: '副主任', transferType: '転出（異動）', destDept: '西日本地域部', transferDate: '2026年9月', comment: '地域強化施策',             approvalStatus: '下書き保存',  retirementDate: '2032年3月' },
 ];
 
-const METRICS = [
-  { label: '現在部員数',       value: '24名', color: '#212121' },
-  { label: '異動予定（転出）', value: '3名',  color: '#F57C00' },
-  { label: '異動予定（転入）', value: '2名',  color: '#0288D1' },
-  { label: '退職予定',         value: '1名',  color: '#D32F2F' },
-  { label: '採用予定',         value: '2名',  color: '#388E3C' },
+const FISCAL_YEAR_RANGE = '〜 2027年3月末';
+
+const TRANSFER_TYPES = ['転出（異動）', '退職'];
+const MONTHS = [
+  '2026年4月', '2026年5月', '2026年6月', '2026年7月', '2026年8月', '2026年9月',
+  '2026年10月', '2026年11月', '2026年12月', '2027年1月', '2027年2月', '2027年3月',
 ];
 
-const TRANSFER_TYPES = ['転出（異動）', '転入（受入）', '退職', '出向', '復帰'];
-const MONTHS = ['2026年4月', '2026年5月', '2026年6月', '2026年7月', '2026年8月', '2026年9月'];
-
-// ---------- 異動計画入力モーダル ----------
+// ---------- 異動計画モーダル（入力・編集共用） ----------
 function PlanModal({
   member,
   initial,
+  isEdit,
   onClose,
   onSave,
+  onDetail,
 }: {
   member: Member;
   initial: PlanForm;
+  isEdit: boolean;
   onClose: () => void;
   onSave: (form: PlanForm) => void;
+  onDetail: () => void;
 }) {
   const [form, setForm] = useState<PlanForm>(initial);
   const deptList = DEPT_OPTIONS[form.center] ?? [];
@@ -112,9 +126,12 @@ function PlanModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-surface rounded-xl shadow-xl w-full max-w-lg mx-4 flex flex-col max-h-[90vh]">
+        {/* Header */}
         <div className="flex items-center justify-between px-5 h-14 border-b border-outline shrink-0">
           <div>
-            <span className="text-base font-medium text-on-surface">異動計画 入力</span>
+            <span className="text-base font-medium text-on-surface">
+              {isEdit ? '異動計画 編集' : '異動計画 入力'}
+            </span>
             <span className="ml-2 text-sm text-on-surface-variant">{member.name}（{member.empNo}）</span>
           </div>
           <button onClick={onClose} className="p-1 rounded hover:bg-surface-variant text-on-surface-variant">
@@ -122,6 +139,7 @@ function PlanModal({
           </button>
         </div>
 
+        {/* Body */}
         <div className="flex flex-col gap-5 p-5 overflow-y-auto">
           <Field label="異動種別">
             <select className="select-base" value={form.transferType}
@@ -187,25 +205,38 @@ function PlanModal({
           </Field>
         </div>
 
-        <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-outline shrink-0">
-          <button onClick={onClose}
-            className="text-sm text-on-surface-variant px-4 h-9 rounded-full border border-outline hover:bg-surface-variant">
-            キャンセル
+        {/* Footer */}
+        <div className="flex items-center justify-between px-5 py-4 border-t border-outline shrink-0">
+          {/* 左：詳細ボタン */}
+          <button
+            onClick={onDetail}
+            className="flex items-center gap-1.5 text-sm text-primary px-4 h-9 rounded-full border border-primary hover:bg-primary-container"
+          >
+            <Icon name="open_in_new" size={16} className="text-primary" />
+            詳細
           </button>
-          <button onClick={() => onSave({ ...form })}
-            className="text-sm font-medium text-primary px-4 h-9 rounded-full border border-primary hover:bg-primary-container">
-            下書き保存
-          </button>
-          <button onClick={() => onSave({ ...form })}
-            className="text-sm font-medium text-on-primary px-4 h-9 rounded-full"
-            style={{ backgroundColor: '#1976D2' }}>
-            承認申請
-          </button>
+          {/* 右：操作ボタン群 */}
+          <div className="flex items-center gap-2">
+            <button onClick={onClose}
+              className="text-sm text-on-surface-variant px-4 h-9 rounded-full border border-outline hover:bg-surface-variant">
+              キャンセル
+            </button>
+            <button onClick={() => onSave({ ...form })}
+              className="text-sm font-medium text-primary px-4 h-9 rounded-full border border-primary hover:bg-primary-container">
+              下書き保存
+            </button>
+            <button onClick={() => onSave({ ...form })}
+              className="text-sm font-medium text-on-primary px-4 h-9 rounded-full"
+              style={{ backgroundColor: '#1976D2' }}>
+              承認申請
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -223,6 +254,7 @@ export default function MembersPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [modalMember, setModalMember] = useState<Member | null>(null);
+  const [modalIsEdit, setModalIsEdit] = useState(false);
 
   const filtered = members.filter(
     (m) => m.name.includes(search) || m.empNo.includes(search) || m.dept.includes(search)
@@ -257,7 +289,10 @@ export default function MembersPage() {
 
   const totalDraft = members.filter((m) => m.approvalStatus === '下書き保存').length;
 
-  const openModal = (member: Member) => setModalMember(member);
+  const openModal = (member: Member, isEdit: boolean) => {
+    setModalMember(member);
+    setModalIsEdit(isEdit);
+  };
   const closeModal = () => setModalMember(null);
   const savePlan = (form: PlanForm) => {
     const dest = form.scope === '本部外' ? form.destFreeText : `${form.center} / ${form.destDept}`;
@@ -271,6 +306,16 @@ export default function MembersPage() {
     closeModal();
   };
 
+  const getInitialForm = (member: Member): PlanForm => ({
+    transferType: member.transferType || '転出（異動）',
+    scope: '本部内',
+    center: CENTER_OPTIONS[0],
+    destDept: DEPT_OPTIONS[CENTER_OPTIONS[0]][0],
+    destFreeText: '',
+    transferDate: member.transferDate || MONTHS[3],
+    comment: member.comment || '',
+  });
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppBar roleIcon="person" roleLabel="部長：田中太郎" showNotification />
@@ -280,7 +325,7 @@ export default function MembersPage() {
         {/* Page header */}
         <div className="flex items-center justify-between shrink-0">
           <div>
-            <h1 className="text-2xl font-medium text-on-surface">第一開発部 部員一覧</h1>
+            <h1 className="text-2xl font-medium text-on-surface">転出・退職計画</h1>
             <p className="text-sm text-on-surface-variant mt-1">2026年度 人員計画</p>
           </div>
           <button
@@ -301,11 +346,27 @@ export default function MembersPage() {
         </div>
 
         {/* Metrics */}
-        <div className="grid grid-cols-5 gap-4 shrink-0">
-          {METRICS.map((m) => (
-            <div key={m.label} className="bg-surface border border-outline rounded-lg p-5 flex flex-col gap-2">
+        <div className="grid grid-cols-4 gap-4 shrink-0">
+          {/* 現在部員数 — 期間対象外 */}
+          <div className="bg-surface border border-outline rounded-lg p-5 flex flex-col gap-2">
+            <span className="text-[13px] text-on-surface-variant">現在部員数</span>
+            <span className="text-[28px] font-medium leading-none text-on-surface">{members.length}名</span>
+          </div>
+          {/* 期間ありメトリクス */}
+          {[
+            { label: '転出予定',     count: countByType(members, '転出（異動）'), color: '#F57C00' },
+            { label: '退職予定',     count: countByType(members, '退職'),         color: '#D32F2F' },
+            { label: '定年退職予定', count: members.filter((m) => m.retirementDate && NEXT_FY_MONTHS.includes(m.retirementDate)).length, color: '#7B1FA2' },
+          ].map((m) => (
+            <div key={m.label} className="bg-surface border border-outline rounded-lg p-5 flex flex-col justify-between gap-1">
               <span className="text-[13px] text-on-surface-variant">{m.label}</span>
-              <span className="text-[28px] font-medium leading-none" style={{ color: m.color }}>{m.value}</span>
+              <span className="text-[28px] font-medium leading-none" style={{ color: m.color }}>
+                {m.count}名
+              </span>
+              <div className="flex items-center gap-1 mt-1">
+                <span className="material-symbols-rounded text-on-surface-variant" style={{ fontSize: 12 }}>calendar_today</span>
+                <span className="text-[11px] text-on-surface-variant">{FISCAL_YEAR_RANGE}</span>
+              </div>
             </div>
           ))}
         </div>
@@ -358,12 +419,13 @@ export default function MembersPage() {
               <div className="w-44 text-xs font-medium text-on-surface-variant shrink-0">異動先</div>
               <div className="w-24 text-xs font-medium text-on-surface-variant shrink-0">異動時期</div>
               <div className="flex-1 text-xs font-medium text-on-surface-variant min-w-[120px]">コメント</div>
-              <div className="w-32 text-xs font-medium text-on-surface-variant text-center shrink-0">アクション</div>
+              <div className="w-24 text-xs font-medium text-on-surface-variant shrink-0">定年退職</div>
+              <div className="w-28 text-xs font-medium text-on-surface-variant text-center shrink-0">アクション</div>
             </div>
 
             {/* Data rows */}
             {filtered.map((m) => {
-              const hasPlan = m.destDept && m.destDept !== '—';
+              const hasPlan = !!m.transferType;
               return (
                 <div
                   key={m.id}
@@ -399,11 +461,19 @@ export default function MembersPage() {
                   <div className="flex-1 min-w-[120px]">
                     <span className="text-sm text-on-surface-variant line-clamp-1">{m.comment || '—'}</span>
                   </div>
+                  {/* 定年退職 */}
+                  <div className="w-24 shrink-0">
+                    {m.retirementDate ? (
+                      <span className="text-sm text-on-surface-variant">{m.retirementDate}</span>
+                    ) : (
+                      <span className="text-sm text-on-surface-variant">—</span>
+                    )}
+                  </div>
                   {/* アクション */}
-                  <div className="w-32 flex items-center justify-center gap-2 shrink-0">
+                  <div className="w-28 flex items-center justify-center gap-2 shrink-0">
                     {hasPlan ? (
                       <button
-                        onClick={() => router.push('/transfer-plans')}
+                        onClick={() => openModal(m, true)}
                         className="flex items-center gap-1 text-xs font-medium text-on-primary px-3 h-7 rounded"
                         style={{ backgroundColor: '#1976D2' }}
                       >
@@ -412,7 +482,7 @@ export default function MembersPage() {
                       </button>
                     ) : (
                       <button
-                        onClick={() => openModal(m)}
+                        onClick={() => openModal(m, false)}
                         className="flex items-center gap-1 text-xs font-medium text-primary px-3 h-7 rounded border border-primary hover:bg-primary-container"
                       >
                         <Icon name="add" size={14} className="text-primary" />
@@ -427,7 +497,7 @@ export default function MembersPage() {
 
           {/* Count only, no pagination */}
           <div className="flex items-center px-4 h-10 border-t border-outline shrink-0">
-            <span className="text-[13px] text-on-surface-variant">{filtered.length}件表示 / 全24件</span>
+            <span className="text-[13px] text-on-surface-variant">{filtered.length}件表示 / 全{members.length}件</span>
           </div>
         </div>
       </main>
@@ -436,9 +506,11 @@ export default function MembersPage() {
       {modalMember && (
         <PlanModal
           member={modalMember}
-          initial={EMPTY_FORM}
+          initial={getInitialForm(modalMember)}
+          isEdit={modalIsEdit}
           onClose={closeModal}
           onSave={savePlan}
+          onDetail={() => { closeModal(); router.push('/transfer-plans'); }}
         />
       )}
 

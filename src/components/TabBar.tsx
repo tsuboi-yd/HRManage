@@ -3,9 +3,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const TABS = [
-  { label: '部員一覧', href: '/members' },
-  { label: '異動計画', href: '/transfer-plans' },
-  { label: '退職・採用計画', href: '/retirement-plans' },
+  { label: '転出・退職計画', href: '/members' },
+  { label: '転入・採用計画', href: '/retirement-plans' },
+  { label: '異動計画詳細', href: '/transfer-plans' },
   { label: '承認状況', href: '/approvals' },
 ];
 
