@@ -321,7 +321,7 @@ export default function MembersPage() {
       <AppBar roleIcon="person" roleLabel="部長：田中太郎" showNotification />
       <TabBar />
 
-      <main className="flex flex-col gap-6 p-6" style={{ height: 'calc(100vh - 112px)', overflow: 'hidden' }}>
+      <main className="flex flex-col gap-6 p-6">
         {/* Page header */}
         <div className="flex items-center justify-between shrink-0">
           <div>
@@ -372,7 +372,7 @@ export default function MembersPage() {
         </div>
 
         {/* Table card — flex-1 で残り高さを埋め、内部スクロール */}
-        <div className="bg-surface border border-outline rounded-lg flex flex-col flex-1 overflow-hidden min-h-0">
+        <div className="bg-surface border border-outline rounded-lg flex flex-col">
           {/* Toolbar */}
           <div className="flex items-center justify-between px-4 h-14 border-b border-outline shrink-0">
             <div className="flex items-center gap-2 bg-surface-variant rounded px-3 h-10 w-72">
@@ -400,7 +400,7 @@ export default function MembersPage() {
           </div>
 
           {/* Scrollable table area */}
-          <div className="overflow-auto flex-1">
+          <div className="overflow-auto">
             {/* Sticky header */}
             <div className="flex items-center bg-surface-variant px-4 h-12 sticky top-0 z-10 min-w-[1100px]">
               <div className="w-12 flex items-center justify-center shrink-0">

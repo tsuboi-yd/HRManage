@@ -1,62 +1,43 @@
 import Link from 'next/link';
 
-const SCREENS = [
+const ROLES = [
   {
-    href: '/members',
-    title: '部員一覧',
-    desc: '部長View — チームメンバーの一覧・ステータス確認',
-    icon: 'groups',
     role: '部長',
     color: '#1976D2',
+    bg: '#E3F2FD',
+    icon: 'person',
+    screens: [
+      { href: '/members',          title: '転出・退職計画',   desc: 'チームメンバーの異動・退職計画を入力',     icon: 'group' },
+      { href: '/retirement-plans', title: '転入・採用計画',   desc: '転入受入・採用計画を登録・管理',           icon: 'person_add' },
+      { href: '/transfer-plans',   title: '異動計画一覧',     desc: '転出・転入をまとめて一覧確認',             icon: 'swap_horiz' },
+      { href: '/approvals',        title: '承認状況',         desc: '申請した計画の承認フローを確認・操作',     icon: 'approval' },
+    ],
   },
   {
-    href: '/transfer-plans',
-    title: '異動計画入力',
-    desc: '部長View — 異動計画の作成・編集',
-    icon: 'swap_horiz',
-    role: '部長',
-    color: '#1976D2',
-  },
-  {
-    href: '/center-review',
-    title: 'センター長確認・修正',
-    desc: '全部門の異動計画を確認・修正・承認',
-    icon: 'shield_person',
     role: 'センター長',
     color: '#7B1FA2',
+    bg: '#EDE7F6',
+    icon: 'shield_person',
+    screens: [
+      { href: '/center-manager/members', title: '部員一覧',         desc: '全部門のメンバーと計画を横断確認',         icon: 'groups' },
+      { href: '/center-manager',         title: '異動計画 確認・修正', desc: '部門横断の異動計画を確認・承認・秘匿登録', icon: 'fact_check' },
+    ],
   },
   {
-    href: '/dest-approval',
-    title: '受入異動 承認',
-    desc: '異動先部長View — 受入候補の承認・差戻',
-    icon: 'how_to_reg',
-    role: '異動先部長',
-    color: '#1976D2',
-  },
-  {
-    href: '/hr-approval',
-    title: '人事 最終承認',
-    desc: '全センターの最終承認・却下',
+    role: '人事部',
+    color: '#00796B',
+    bg: '#E0F2F1',
     icon: 'admin_panel_settings',
-    role: '人事部',
-    color: '#1976D2',
-  },
-  {
-    href: '/snapshot',
-    title: '人員スナップショット・差分分析',
-    desc: '実人員と計画の差分をドリルダウン確認',
-    icon: 'analytics',
-    role: '人事部',
-    color: '#1976D2',
+    screens: [
+      { href: '/hr',        title: '人事 最終承認', desc: '全センターの異動・採用計画に最終承認',         icon: 'how_to_reg' },
+      { href: '/analytics', title: '分析',         desc: 'スナップショットで計画と実績の差分を分析', icon: 'analytics' },
+    ],
   },
 ];
 
 function Icon({ name, size = 24 }: { name: string; size?: number }) {
   return (
-    <span
-      className="material-symbols-rounded"
-      style={{ fontSize: size, width: size, height: size, lineHeight: 1 }}
-    >
+    <span className="material-symbols-rounded" style={{ fontSize: size, lineHeight: 1 }}>
       {name}
     </span>
   );
@@ -69,34 +50,48 @@ export default function HomePage() {
         className="flex items-center px-6 gap-4"
         style={{ backgroundColor: '#1976D2', height: 64 }}
       >
-        <Icon name="menu" size={24} />
+        <span className="text-white"><Icon name="menu" /></span>
         <span className="text-white text-xl font-medium">人員計画管理</span>
       </header>
-      <main className="p-8 max-w-5xl mx-auto">
-        <h1 className="text-2xl font-medium text-on-surface mb-2">画面一覧</h1>
-        <p className="text-sm text-on-surface-variant mb-8">各ロール・ワークフローの画面を選択してください</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {SCREENS.map((s) => (
-            <Link
-              key={s.href}
-              href={s.href}
-              className="block bg-surface border border-outline rounded-lg p-5 hover:shadow-md transition-shadow"
-            >
-              <div
-                className="w-10 h-10 rounded-full flex items-center justify-center mb-3"
-                style={{ backgroundColor: s.color }}
-              >
-                <Icon name={s.icon} size={20} />
+
+      <main className="p-8 max-w-4xl mx-auto">
+        <h1 className="text-2xl font-medium text-on-surface mb-1">画面一覧</h1>
+        <p className="text-sm text-on-surface-variant mb-8">ロールを選択して画面に進んでください</p>
+
+        <div className="flex flex-col gap-8">
+          {ROLES.map((r) => (
+            <section key={r.role}>
+              {/* ロールヘッダー */}
+              <div className="flex items-center gap-2 mb-3">
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: r.color }}
+                >
+                  <span className="text-white"><Icon name={r.icon} size={16} /></span>
+                </div>
+                <span className="text-base font-semibold" style={{ color: r.color }}>{r.role}</span>
               </div>
-              <div
-                className="inline-block text-xs font-medium px-2 py-0.5 rounded-full mb-2"
-                style={{ backgroundColor: '#E3F2FD', color: s.color }}
-              >
-                {s.role}
+
+              {/* スクリーンカード */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                {r.screens.map((s) => (
+                  <Link
+                    key={s.href}
+                    href={s.href}
+                    className="flex flex-col gap-2 bg-surface border border-outline rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: r.bg }}
+                    >
+                      <span style={{ color: r.color }}><Icon name={s.icon} size={18} /></span>
+                    </div>
+                    <p className="text-sm font-medium text-on-surface leading-snug">{s.title}</p>
+                    <p className="text-xs text-on-surface-variant leading-relaxed">{s.desc}</p>
+                  </Link>
+                ))}
               </div>
-              <h2 className="text-base font-medium text-on-surface mb-1">{s.title}</h2>
-              <p className="text-[13px] text-on-surface-variant leading-relaxed">{s.desc}</p>
-            </Link>
+            </section>
           ))}
         </div>
       </main>

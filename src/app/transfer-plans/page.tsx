@@ -346,10 +346,9 @@ export default function TransferPlansPage() {
 
       <main
         className="flex gap-6 p-6"
-        style={{ height: 'calc(100vh - 112px)', overflow: 'hidden' }}
       >
         {/* ── 左パネル ── */}
-        <div className="flex flex-col gap-3 w-[360px] shrink-0 h-full">
+        <div className="flex flex-col gap-3 w-[360px] shrink-0">
           {/* ヘッダー */}
           <div className="flex items-center justify-between shrink-0">
             <h2 className="text-xl font-medium text-on-surface">異動計画 一覧</h2>
@@ -372,7 +371,7 @@ export default function TransferPlansPage() {
           </div>
 
           {/* リスト */}
-          <div className="flex flex-col gap-2 overflow-y-auto flex-1 pr-0.5">
+          <div className="flex flex-col gap-2 pr-0.5">
             {filtered.map((plan) =>
               plan.kind === 'out' ? (
                 <OutCard key={plan.id} plan={plan} active={selected?.id === plan.id} onClick={() => setSelected(plan)} />
@@ -390,7 +389,7 @@ export default function TransferPlansPage() {
         </div>
 
         {/* ── 右パネル ── */}
-        <div className="flex-1 bg-surface border border-outline rounded-lg flex flex-col overflow-hidden">
+        <div className="flex-1 bg-surface border border-outline rounded-lg flex flex-col">
           {!selected && (
             <div className="flex flex-col items-center justify-center flex-1 gap-3 text-on-surface-variant">
               <Icon name="list_alt" size={48} />

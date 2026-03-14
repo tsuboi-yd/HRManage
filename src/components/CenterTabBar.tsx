@@ -3,13 +3,11 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const TABS = [
-  { label: '転出・退職計画', href: '/members' },
-  { label: '転入・採用計画', href: '/retirement-plans' },
-  { label: '異動計画一覧', href: '/transfer-plans' },
-  { label: '承認状況', href: '/approvals' },
+  { label: '部員一覧',       href: '/center-manager/members' },
+  { label: '異動計画 確認・修正', href: '/center-manager' },
 ];
 
-export default function TabBar() {
+export default function CenterTabBar() {
   const pathname = usePathname();
   return (
     <nav

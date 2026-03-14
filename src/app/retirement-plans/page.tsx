@@ -509,7 +509,7 @@ export default function HiringPlansPage() {
       <AppBar roleIcon="person" roleLabel="部長：田中太郎" />
       <TabBar />
 
-      <main className="flex flex-col gap-0 p-6" style={{ height: 'calc(100vh - 112px)', overflow: 'hidden' }}>
+      <main className="flex flex-col gap-0 p-6">
         {/* Page header */}
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div>
@@ -536,7 +536,7 @@ export default function HiringPlansPage() {
         </div>
 
         {/* Section content */}
-        <div className="flex-1 overflow-y-auto min-h-0">
+        <div>
           {tab === 'hiring' ? <HiringSection /> : <TransferInSection />}
         </div>
       </main>
