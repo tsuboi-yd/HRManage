@@ -19,6 +19,8 @@ node_modules/
 *.pem
 npm-debug.log*
 
+amplify/
+
 #amplify-do-not-edit-begin
 amplify/\#current-cloud-backend
 amplify/.config/local-*
