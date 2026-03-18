@@ -21,6 +21,16 @@ const ROLES = [
     screens: [
       { href: '/center-manager/members', title: '部員一覧',         desc: '全部門のメンバーと計画を横断確認',         icon: 'groups' },
       { href: '/center-manager',         title: '異動計画 確認・修正', desc: '部門横断の異動計画を確認・承認・秘匿登録', icon: 'fact_check' },
+      { href: '/analytics',              title: '分析',             desc: 'スナップショットで計画と実績の差分を分析', icon: 'analytics' },
+    ],
+  },
+  {
+    role: '企画',
+    color: '#E65100',
+    bg: '#FBE9E7',
+    icon: 'insights',
+    screens: [
+      { href: '/analytics', title: '分析', desc: 'スナップショットで計画と実績の差分を分析', icon: 'analytics' },
     ],
   },
   {

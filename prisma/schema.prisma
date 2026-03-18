@@ -1,0 +1,82 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Organization {
+  id       String  @id @default(cuid())
+  name     String
+  level    String  // honbu / center / dept
+  parentId String?
+  icon     String  @default("business")
+
+  parent         Organization?  @relation("OrgTree", fields: [parentId], references: [id])
+  children       Organization[] @relation("OrgTree")
+  members        Member[]
+  transferPlans  TransferPlan[]
+  headcountPlans HeadcountPlan[]
+  futureHeadcounts FutureHeadcount[]
+}
+
+model Member {
+  id    String @id @default(cuid())
+  empNo String @unique
+  name  String
+  orgId String
+  org   Organization @relation(fields: [orgId], references: [id])
+}
+
+model TransferPlan {
+  id       String @id @default(cuid())
+  orgId    String
+  empNo    String
+  name     String
+  type     String  // 転出 / 転入 / 退職 / 採用
+  dest     String
+  date     String  // "2026/07" 形式
+  diffKind String  // 計画のみ / 実績のみ / 一致
+  org      Organization @relation(fields: [orgId], references: [id])
+}
+
+model HeadcountPlan {
+  id       String @id @default(cuid())
+  orgId    String
+  monthIdx Int
+  planned  Int
+  actual   Int?
+  org      Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, monthIdx])
+}
+
+model FutureHeadcount {
+  id       String @id @default(cuid())
+  orgId    String
+  monthIdx Int
+  count    Int
+  comment  String?
+  org      Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, monthIdx])
+}
+
+model Snapshot {
+  id        String   @id @default(cuid())
+  label     String
+  date      String
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id         String  @id @default(cuid())
+  azureAdId  String  @unique
+  name       String
+  email      String
+  role       String  // center_manager / hr / planning / manager
+  orgId      String?
+}

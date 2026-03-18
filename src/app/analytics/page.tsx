@@ -162,12 +162,15 @@ const FIRST_ORG_BY_LEVEL: Record<ViewLevel, string> = { honbu: 'h1', center: 'c1
 // ================================================================
 // SVG 折れ線グラフ
 // ================================================================
-function LineChart({ planData, actualData, selectedIdx, futurePoints, baselinePoint }: {
+function LineChart({ planData, actualData, selectedIdx, futurePoints, baselinePoint, dashedEndIdx, comparisonValue, comparisonMonthIdx }: {
   planData: number[];
   actualData: number[];
   selectedIdx: number;
   futurePoints: { monthIdx: number; count: number }[];
   baselinePoint: { monthIdx: number; count: number };
+  dashedEndIdx: number;
+  comparisonValue: number;
+  comparisonMonthIdx: number;
 }) {
   const n = TOTAL_MONTHS;
   const CH = SVG_H - PT - PB;
@@ -188,16 +191,19 @@ function LineChart({ planData, actualData, selectedIdx, futurePoints, baselinePo
   const xS = (i: number) => PL + (i / (n - 1)) * CW;
   const yS = (v: number) => PT + ((yMax - v) / (yMax - yMin)) * CH;
 
-  // Plan: solid up to actual end, dashed beyond
+  // Plan: solid up to actual end, dashed up to dashedEndIdx only
   const solidPlan  = planData.slice(0, ACTUAL_END_IDX + 1)
     .map((v, i) => `${i === 0 ? 'M' : 'L'}${xS(i)},${yS(v)}`).join(' ');
-  const dashedPlan = planData.slice(ACTUAL_END_IDX)
-    .map((v, i) => `${i === 0 ? 'M' : 'L'}${xS(i + ACTUAL_END_IDX)},${yS(v)}`).join(' ');
+  const dashedPlan = dashedEndIdx > ACTUAL_END_IDX
+    ? planData.slice(ACTUAL_END_IDX, dashedEndIdx + 1)
+        .map((v, i) => `${i === 0 ? 'M' : 'L'}${xS(i + ACTUAL_END_IDX)},${yS(v)}`).join(' ')
+    : '';
   const actualPath = actualData
     .map((v, i) => `${i === 0 ? 'M' : 'L'}${xS(i)},${yS(v)}`).join(' ');
 
-  const selX      = xS(selectedIdx);
-  const selPlanY  = yS(planData[selectedIdx]);
+  const sliderX   = xS(selectedIdx);       // スライダー位置（縦ガイド線用）
+  const selX      = xS(comparisonMonthIdx); // オレンジマーカー位置（比較対象月）
+  const selPlanY  = yS(comparisonValue);
   const actEndX   = xS(ACTUAL_END_IDX);
   const actEndY   = yS(actualData[ACTUAL_END_IDX]);
 
@@ -233,7 +239,7 @@ function LineChart({ planData, actualData, selectedIdx, futurePoints, baselinePo
 
       {/* 将来登録ポイント延長線（実績終点→登録済み将来ポイント） */}
       {sortedFP.length > 0 && (
-        <path d={extPath} fill="none" stroke="#00897B" strokeWidth={1.5} strokeDasharray="5,3" opacity={0.7} />
+        <path d={extPath} fill="none" stroke="#1976D2" strokeWidth={1.5} strokeDasharray="5,3" opacity={0.7} />
       )}
 
       {/* 差分ガイド: 比較基準の水平点線 → 選択月 */}
@@ -243,9 +249,9 @@ function LineChart({ planData, actualData, selectedIdx, futurePoints, baselinePo
       <line x1={selX} y1={baseY} x2={selX} y2={selPlanY}
         stroke="#FF9800" strokeWidth={2.5} />
 
-      {/* 選択月の縦ガイド */}
-      <line x1={selX} y1={PT} x2={selX} y2={SVG_H - PB}
-        stroke="#FF9800" strokeWidth={1} strokeDasharray="5,4" opacity={0.5} />
+      {/* スライダー位置の縦ガイド */}
+      <line x1={sliderX} y1={PT} x2={sliderX} y2={SVG_H - PB}
+        stroke="#FF9800" strokeWidth={1} strokeDasharray="5,4" opacity={0.3} />
 
       {/* 実人員ライン */}
       <path d={actualPath} fill="none" stroke="#388E3C" strokeWidth={2.5}
@@ -277,7 +283,7 @@ function LineChart({ planData, actualData, selectedIdx, futurePoints, baselinePo
         return (
           <g key={`fp${i}`}>
             <polygon points={`${px},${py - r} ${px + r},${py} ${px},${py + r} ${px - r},${py}`}
-              fill="#00897B" stroke="white" strokeWidth={2} />
+              fill="#1976D2" stroke="white" strokeWidth={2} />
           </g>
         );
       })}
@@ -475,18 +481,70 @@ export default function AnalyticsPage() {
     .filter(p => p.orgId === selectedOrgId)
     .map(p => ({ monthIdx: p.monthIdx, count: p.count }));
 
-  // 差分の比較基準：selectedFutureIdx 以前の最新登録ポイント、なければ最新実績
-  const latestApplicable = futurePoints
-    .filter(p => p.orgId === selectedOrgId && p.monthIdx <= selectedFutureIdx)
-    .sort((a, b) => b.monthIdx - a.monthIdx)[0];
-  const baselinePoint = latestApplicable
-    ? { monthIdx: latestApplicable.monthIdx, count: latestApplicable.count }
-    : { monthIdx: ACTUAL_END_IDX, count: chartData.actual[ACTUAL_END_IDX] };
+  // 比較基準：常に最新実績に固定
+  const baselinePoint = { monthIdx: ACTUAL_END_IDX, count: chartData.actual[ACTUAL_END_IDX] };
 
-  // 差分カード用の値
-  const planAtSelected = chartData.plan[selectedFutureIdx];
-  const actualLast     = chartData.actual[ACTUAL_END_IDX];
-  const futureDiff     = planAtSelected - baselinePoint.count;
+  // 異動予定の最終月インデックス（計画破線の終端・比較対象の判定に使用）
+  const getVisibleNameDiffs = (): NameDiffRow[] => {
+    if (!selectedRow || selectedRow.level === 'honbu') return ALL_NAME_DIFFS;
+    if (selectedRow.level === 'center') {
+      const childIds = DIFF_ROWS.filter(r => r.parentId === selectedOrgId).map(r => r.id);
+      return ALL_NAME_DIFFS.filter(n => childIds.includes(n.orgId));
+    }
+    return ALL_NAME_DIFFS.filter(n => n.orgId === selectedOrgId);
+  };
+  const allVisibleNameDiffs = getVisibleNameDiffs();
+  const dashedEndIdx = allVisibleNameDiffs.length > 0
+    ? Math.max(...allVisibleNameDiffs.map(r => {
+        const [year, month] = r.date.split('/').map(Number);
+        return (year - 2025) * 12 + (month - 10);
+      }))
+    : ACTUAL_END_IDX;
+
+  // 比較基準：常に最新実績に固定
+  const actualLast = chartData.actual[ACTUAL_END_IDX];
+
+  // 比較対象の決定（優先順位順）
+  type ComparisonSource = 'plan' | 'future-exact' | 'nearest-plan' | 'nearest-future';
+  let comparisonValue: number;
+  let comparisonSource: ComparisonSource;
+  let comparisonMonthIdx: number = selectedFutureIdx;
+
+  const exactFuturePoint = chartFuturePoints.find(p => p.monthIdx === selectedFutureIdx);
+
+  if (selectedFutureIdx <= dashedEndIdx) {
+    // ①異動計画ベースの計画予測がある期間
+    comparisonValue = chartData.plan[selectedFutureIdx];
+    comparisonSource = 'plan';
+  } else if (exactFuturePoint) {
+    // ②選択月にちょうど将来人数が登録されている
+    comparisonValue = exactFuturePoint.count;
+    comparisonSource = 'future-exact';
+  } else {
+    // ③どちらもない → 近い方を選択（同距離なら計画優先）
+    const nearestFuture = [...chartFuturePoints]
+      .filter(p => p.monthIdx < selectedFutureIdx)
+      .sort((a, b) => b.monthIdx - a.monthIdx)[0];
+
+    const hasPlan    = dashedEndIdx > ACTUAL_END_IDX;
+    const planDist   = hasPlan        ? selectedFutureIdx - dashedEndIdx          : Infinity;
+    const futureDist = nearestFuture  ? selectedFutureIdx - nearestFuture.monthIdx : Infinity;
+
+    if (hasPlan && planDist <= futureDist) {
+      comparisonValue    = chartData.plan[dashedEndIdx];
+      comparisonSource   = 'nearest-plan';
+      comparisonMonthIdx = dashedEndIdx;
+    } else if (nearestFuture) {
+      comparisonValue    = nearestFuture.count;
+      comparisonSource   = 'nearest-future';
+      comparisonMonthIdx = nearestFuture.monthIdx;
+    } else {
+      comparisonValue  = chartData.plan[selectedFutureIdx];
+      comparisonSource = 'plan';
+    }
+  }
+
+  const futureDiff = comparisonValue - actualLast;
 
   const saveFuturePoint = (monthIdx: number, count: number, comment: string) => {
     const newPoint: FuturePoint = {
@@ -523,17 +581,8 @@ export default function AnalyticsPage() {
     return true;
   });
 
-  const getVisibleNameDiffs = (): NameDiffRow[] => {
-    if (!selectedRow || selectedRow.level === 'honbu') return ALL_NAME_DIFFS;
-    if (selectedRow.level === 'center') {
-      const childIds = DIFF_ROWS.filter(r => r.parentId === selectedOrgId).map(r => r.id);
-      return ALL_NAME_DIFFS.filter(n => childIds.includes(n.orgId));
-    }
-    return ALL_NAME_DIFFS.filter(n => n.orgId === selectedOrgId);
-  };
-
   // 一致行は除外し差分のみ表示
-  const filteredNames = getVisibleNameDiffs()
+  const filteredNames = allVisibleNameDiffs
     .filter(r => r.diffKind !== '一致')
     .filter(r => nameFilter === 'all' || r.type === nameFilter);
 
@@ -625,7 +674,7 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex items-center gap-1.5">
                 <svg width="14" height="14">
-                  <polygon points="7,1 13,7 7,13 1,7" fill="#00897B" stroke="white" strokeWidth="1.5" />
+                  <polygon points="7,1 13,7 7,13 1,7" fill="#1976D2" stroke="white" strokeWidth="1.5" />
                 </svg>
                 <span className="text-xs text-on-surface-variant">将来登録済み</span>
               </div>
@@ -654,7 +703,7 @@ export default function AnalyticsPage() {
                 .sort((a, b) => a.monthIdx - b.monthIdx)
                 .map(p => (
                   <div key={p.id} className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border"
-                    style={{ backgroundColor: '#E0F2F1', borderColor: '#80CBC4', color: '#00695C' }}>
+                    style={{ backgroundColor: '#E3F2FD', borderColor: '#90CAF9', color: '#1565C0' }}>
                     <Icon name="edit_calendar" size={13} />
                     <span className="font-medium">{ALL_MONTH_LABELS[p.monthIdx]}</span>
                     <span>: {p.count}名</span>
@@ -676,6 +725,9 @@ export default function AnalyticsPage() {
             selectedIdx={selectedFutureIdx}
             futurePoints={chartFuturePoints}
             baselinePoint={baselinePoint}
+            dashedEndIdx={dashedEndIdx}
+            comparisonValue={comparisonValue}
+            comparisonMonthIdx={comparisonMonthIdx}
           />
 
           {/* スライダー：グラフのX軸（未来部分）に重なるよう配置 */}
@@ -698,33 +750,32 @@ export default function AnalyticsPage() {
           {/* 差分サマリーカード */}
           <div className="flex items-center gap-4 p-4 rounded-lg border flex-wrap"
             style={{ backgroundColor: '#FFF8E1', borderColor: '#FFE082' }}>
-            {/* 比較基準 */}
+            {/* 比較基準：最新実績（固定） */}
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full shrink-0 flex items-center justify-center"
-                style={{ backgroundColor: latestApplicable ? '#00897B' : '#388E3C' }}>
-              </div>
+              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#388E3C' }} />
               <div>
-                <div className="text-xs text-on-surface-variant">
-                  {latestApplicable ? '比較基準（登録済み将来人数）' : '比較基準（最新実績）'}
-                </div>
+                <div className="text-xs text-on-surface-variant">比較基準（最新実績）</div>
                 <div className="text-sm font-medium text-on-surface">
-                  {latestApplicable
-                    ? <>{ALL_MONTH_LABELS[latestApplicable.monthIdx]}：<span className="text-base font-bold">{latestApplicable.count}</span>名</>
-                    : <>{currentSnap.label}：<span className="text-base font-bold">{actualLast}</span>名</>
-                  }
+                  {currentSnap.label}：<span className="text-base font-bold">{actualLast}</span>名
                 </div>
               </div>
             </div>
 
             <Icon name="arrow_forward" size={18} className="text-on-surface-variant shrink-0" />
 
-            {/* 選択時点計画 */}
+            {/* 比較対象 */}
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: '#FF9800' }} />
+              <div className="w-3 h-3 rounded-full shrink-0"
+                style={{ backgroundColor: comparisonSource === 'future-exact' || comparisonSource === 'nearest-future' ? '#1976D2' : '#FF9800' }} />
               <div>
-                <div className="text-xs text-on-surface-variant">選択時点（計画）</div>
+                <div className="text-xs text-on-surface-variant">
+                  {comparisonSource === 'plan'           ? '計画（異動計画ベース）' :
+                   comparisonSource === 'future-exact'   ? '将来登録人数' :
+                   comparisonSource === 'nearest-plan'   ? '計画（直近・異動計画ベース）' :
+                                                           '将来登録人数（直近）'}
+                </div>
                 <div className="text-sm font-medium text-on-surface">
-                  {ALL_MONTH_LABELS[selectedFutureIdx]}：<span className="text-base font-bold">{planAtSelected}</span>名
+                  {ALL_MONTH_LABELS[comparisonMonthIdx]}：<span className="text-base font-bold">{comparisonValue}</span>名
                 </div>
               </div>
             </div>
