@@ -3,14 +3,7 @@ import DeptPageShell from '@/components/DeptPageShell';
 import StatusBadge from '@/components/StatusBadge';
 import { useState, useEffect } from 'react';
 import { usePlanDeltas, getFiscalYear } from '@/contexts/PlanDeltaContext';
-
-function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {
-  return (
-    <span className={`material-symbols-rounded ${className}`} style={{ fontSize: size, lineHeight: 1 }}>
-      {name}
-    </span>
-  );
-}
+import Icon from '@/components/Icon';
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

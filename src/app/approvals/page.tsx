@@ -2,14 +2,7 @@
 import DeptPageShell from '@/components/DeptPageShell';
 import StatusBadge from '@/components/StatusBadge';
 import { useState } from 'react';
-
-function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {
-  return (
-    <span className={`material-symbols-rounded ${className}`} style={{ fontSize: size, lineHeight: 1 }}>
-      {name}
-    </span>
-  );
-}
+import Icon from '@/components/Icon';
 
 // ================================================================
 // データ型

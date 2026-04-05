@@ -1,14 +1,7 @@
 'use client';
 import AppBar from '@/components/AppBar';
 import { useState } from 'react';
-
-function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {
-  return (
-    <span className={`material-symbols-rounded ${className}`} style={{ fontSize: size, lineHeight: 1 }}>
-      {name}
-    </span>
-  );
-}
+import Icon from '@/components/Icon';
 
 // ================================================================
 // 型定義

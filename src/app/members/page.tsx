@@ -4,14 +4,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { useRouter } from 'next/navigation';
 import { useState, useMemo, useEffect } from 'react';
 import { usePlanDeltas, getFiscalYear } from '@/contexts/PlanDeltaContext';
-
-function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {
-  return (
-    <span className={`material-symbols-rounded ${className}`} style={{ fontSize: size, lineHeight: 1 }}>
-      {name}
-    </span>
-  );
-}
+import Icon from '@/components/Icon';
 
 // ---------- 次年度末フィルター ----------
 const NEXT_FY_MONTHS = [

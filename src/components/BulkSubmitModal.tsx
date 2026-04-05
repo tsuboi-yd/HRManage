@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import Icon from './Icon';
 
 interface CheckItem {
   label: string;
@@ -13,14 +14,6 @@ interface Props {
   items: CheckItem[];
   onClose: () => void;
   onSubmit: () => void;
-}
-
-function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {
-  return (
-    <span className={`material-symbols-rounded ${className}`} style={{ fontSize: size, lineHeight: 1 }}>
-      {name}
-    </span>
-  );
 }
 
 export default function BulkSubmitModal({ items, onClose, onSubmit }: Props) {

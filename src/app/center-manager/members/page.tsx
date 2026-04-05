@@ -1,16 +1,8 @@
 'use client';
-import AppBar from '@/components/AppBar';
-import CenterTabBar from '@/components/CenterTabBar';
+import CenterPageShell from '@/components/CenterPageShell';
 import StatusBadge from '@/components/StatusBadge';
+import Icon from '@/components/Icon';
 import { useState } from 'react';
-
-function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {
-  return (
-    <span className={`material-symbols-rounded ${className}`} style={{ fontSize: size, lineHeight: 1 }}>
-      {name}
-    </span>
-  );
-}
 
 // ================================================================
 // データ型
@@ -98,9 +90,7 @@ export default function CenterMembersPage() {
   const totalCount        = members.length;
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <AppBar roleIcon="shield_person" roleLabel="センター長：山本部長" />
-      <CenterTabBar />
+    <CenterPageShell>
 
       <main className="flex flex-col gap-6 p-6">
         {/* ページヘッダー */}
@@ -258,7 +248,7 @@ export default function CenterMembersPage() {
           </div>
         </div>
       </main>
-    </div>
+    </CenterPageShell>
   );
 }
 

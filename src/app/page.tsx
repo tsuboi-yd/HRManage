@@ -11,7 +11,6 @@ const ROLES = [
       { href: '/retirement-plans', title: '転入・採用計画',   desc: '転入受入・採用計画を登録・管理',           icon: 'person_add' },
       { href: '/transfer-plans',   title: '異動計画一覧',     desc: '転出・転入をまとめて一覧確認',             icon: 'swap_horiz' },
       { href: '/approvals',        title: '承認状況',         desc: '申請した計画の承認フローを確認・操作',     icon: 'approval' },
-      { href: '/headcount-quota',  title: '定員予定',         desc: '向こう3年の部署別定員人数を入力・集約',   icon: 'groups' },
     ],
   },
   {
@@ -46,13 +45,7 @@ const ROLES = [
   },
 ];
 
-function Icon({ name, size = 24 }: { name: string; size?: number }) {
-  return (
-    <span className="material-symbols-rounded" style={{ fontSize: size, lineHeight: 1 }}>
-      {name}
-    </span>
-  );
-}
+import Icon from '@/components/Icon';
 
 export default function HomePage() {
   return (
