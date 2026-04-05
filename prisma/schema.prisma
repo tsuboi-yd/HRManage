@@ -20,14 +20,24 @@ model Organization {
   transferPlans  TransferPlan[]
   headcountPlans HeadcountPlan[]
   futureHeadcounts FutureHeadcount[]
+  headcountQuotas  HeadcountQuota[]
+  hiringPlans      HiringPlan[]
+  transferInPlans  TransferInPlan[]
 }
 
 model Member {
-  id    String @id @default(cuid())
-  empNo String @unique
-  name  String
-  orgId String
-  org   Organization @relation(fields: [orgId], references: [id])
+  id             String @id @default(cuid())
+  empNo          String @unique
+  name           String
+  orgId          String
+  rank           String   @default("")   // 課長, 主任, 一般, 副主任
+  transferType   String   @default("")   // 転出（異動）, 退職, or empty
+  destDept       String   @default("")
+  transferDate   String   @default("")   // "2026年7月" format
+  comment        String   @default("")
+  approvalStatus String   @default("")   // 承認申請中, 下書き保存, 差戻中, 承認済み
+  retirementDate String   @default("")
+  org            Organization @relation(fields: [orgId], references: [id])
 }
 
 model TransferPlan {
@@ -62,6 +72,48 @@ model FutureHeadcount {
   org      Organization @relation(fields: [orgId], references: [id])
 
   @@unique([orgId, monthIdx])
+}
+
+model HeadcountQuota {
+  id         String @id @default(cuid())
+  orgId      String
+  fiscalYear Int      // 2026, 2027, 2028
+  category   String   // manager(管理職) / staff(一般正社員) / non_regular(非正規)
+  q1         Int      // 4-6月
+  q2         Int      // 7-9月
+  q3         Int      // 10-12月
+  q4         Int      // 1-3月
+  note       String?
+  org        Organization @relation(fields: [orgId], references: [id])
+
+  @@unique([orgId, fiscalYear, category])
+}
+
+model HiringPlan {
+  id         String @id @default(cuid())
+  no         String @unique
+  position   String
+  orgId      String
+  type       String              // 新卒 / 中途 / 契約
+  count      Int
+  targetDate String
+  status     String
+  note       String   @default("")
+  org        Organization @relation(fields: [orgId], references: [id])
+}
+
+model TransferInPlan {
+  id         String  @id @default(cuid())
+  no         String  @unique
+  name       String  @default("")
+  sourceOrg  String
+  sourceType String              // 本部外 / 本部内
+  destOrgId  String
+  targetDate String
+  status     String
+  comment    String  @default("")
+  isInbound  Boolean @default(false)
+  destOrg    Organization @relation(fields: [destOrgId], references: [id])
 }
 
 model Snapshot {

@@ -1,8 +1,8 @@
 'use client';
-import AppBar from '@/components/AppBar';
-import TabBar from '@/components/TabBar';
+import DeptPageShell from '@/components/DeptPageShell';
 import StatusBadge from '@/components/StatusBadge';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { usePlanDeltas, getFiscalYear } from '@/contexts/PlanDeltaContext';
 
 function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {
   return (
@@ -22,6 +22,26 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const DEPT_LIST = ['第一開発部', '第二開発部', 'インフラ部', '品質管理部', '品質保証部', '地域管理部', '西日本地域部'];
+const OWN_DEPT = '第一開発部'; // 部長画面：自部署固定
+
+// サマリ用：転出・退職メンバーデータ（members/page.tsxと同じデータソース）
+const OUTGOING_MEMBERS = [
+  { rank: '主任',   transferType: '転出（異動）', transferDate: '2026年7月' },
+  { rank: '一般',   transferType: '退職',         transferDate: '2026年6月' },
+  { rank: '一般',   transferType: '',             transferDate: '' },
+  { rank: '主任',   transferType: '',             transferDate: '' },
+  { rank: '一般',   transferType: '',             transferDate: '' },
+  { rank: '主任',   transferType: '転出（異動）', transferDate: '2026年7月' },
+  { rank: '一般',   transferType: '',             transferDate: '' },
+  { rank: '課長',   transferType: '退職',         transferDate: '2026年9月' },
+  { rank: '一般',   transferType: '退職',         transferDate: '2026年8月' },
+  { rank: '一般',   transferType: '',             transferDate: '' },
+  { rank: '主任',   transferType: '転出（異動）', transferDate: '2026年9月' },
+  { rank: '一般',   transferType: '',             transferDate: '' },
+  { rank: '一般',   transferType: '',             transferDate: '' },
+  { rank: '一般',   transferType: '',             transferDate: '' },
+  { rank: '副主任', transferType: '転出（異動）', transferDate: '2026年9月' },
+];
 
 const MONTHS = [
   '2026年4月', '2026年5月', '2026年6月', '2026年7月', '2026年8月', '2026年9月',
@@ -55,7 +75,7 @@ const HIRE_STYLE: Record<string, { bg: string; color: string }> = {
   契約: { bg: '#FFF3E0', color: '#F57C00' },
 };
 
-const EMPTY_HIRING: HiringForm = { position: '', dept: DEPT_LIST[0], type: '中途', count: 1, targetDate: '2026年4月', note: '' };
+const EMPTY_HIRING: HiringForm = { position: '', dept: OWN_DEPT, type: '中途', count: 1, targetDate: '2026年4月', note: '' };
 
 const INIT_HIRING: HiringPlan[] = [
   { id: '1', no: 'REC-001', position: 'ソフトウェアエンジニア', dept: '第一開発部', type: '中途', count: 2, targetDate: '2026年6月', status: '承認申請中', note: 'バックエンド経験3年以上' },
@@ -88,9 +108,7 @@ function HiringModal({ plan, onClose, onSave }: {
           <div className="flex gap-3">
             <div className="flex-1">
               <Field label="配属部署">
-                <select className="select-base" value={form.dept} onChange={(e) => setForm({ ...form, dept: e.target.value })}>
-                  {DEPT_LIST.map((d) => <option key={d}>{d}</option>)}
-                </select>
+                <div className="input-base flex items-center" style={{ backgroundColor: '#F5F5F5' }}>{OWN_DEPT}</div>
               </Field>
             </div>
             <div className="w-28">
@@ -138,6 +156,21 @@ function HiringSection() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<HiringPlan | null>(null);
   const [search, setSearch] = useState('');
+
+  // サマリへデルタ発行（採用 = プラス）
+  const { setSourceDeltas } = usePlanDeltas();
+  useEffect(() => {
+    const deltas: Record<string, [number, number, number]> = {};
+    for (const p of plans) {
+      const fy = getFiscalYear(p.targetDate);
+      if (!fy) continue;
+      if (!deltas[fy]) deltas[fy] = [0, 0, 0];
+      // 契約 → 非正規(2)、それ以外 → 一般正社員(1)
+      const catIdx = p.type === '契約' ? 2 : 1;
+      deltas[fy][catIdx] += p.count;
+    }
+    setSourceDeltas('hiring', deltas);
+  }, [plans, setSourceDeltas]);
 
   const filtered = plans.filter((p) => p.position.includes(search) || p.dept.includes(search) || p.no.includes(search));
   const fyPlans = plans.filter((p) => NEXT_FY_MONTHS.has(p.targetDate));
@@ -277,7 +310,7 @@ const SOURCE_STYLE: Record<string, { bg: string; color: string }> = {
   '本部内': { bg: '#EDE7F6', color: '#6A1B9A' },
 };
 
-const EMPTY_TI_FORM: TransferInForm = { name: '', sourceOrg: '', destDept: DEPT_LIST[0], targetDate: '2026年4月', comment: '' };
+const EMPTY_TI_FORM: TransferInForm = { name: '', sourceOrg: '', destDept: OWN_DEPT, targetDate: '2026年4月', comment: '' };
 
 const INIT_TRANSFER_INS: TransferIn[] = [
   // 自部署起案（本部外）
@@ -319,9 +352,7 @@ function TransferInModal({ form: init, onClose, onSave }: {
               onChange={(e) => setForm({ ...form, sourceOrg: e.target.value })} />
           </Field>
           <Field label="配属先部署">
-            <select className="select-base" value={form.destDept} onChange={(e) => setForm({ ...form, destDept: e.target.value })}>
-              {DEPT_LIST.map((d) => <option key={d}>{d}</option>)}
-            </select>
+            <div className="input-base flex items-center" style={{ backgroundColor: '#F5F5F5' }}>{OWN_DEPT}</div>
           </Field>
           <Field label="転入予定時期">
             <select className="select-base" value={form.targetDate} onChange={(e) => setForm({ ...form, targetDate: e.target.value })}>
@@ -348,6 +379,19 @@ function TransferInSection() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<TransferIn | null>(null);
   const [search, setSearch] = useState('');
+
+  // サマリへデルタ発行（転入 = プラス、一般正社員として計上）
+  const { setSourceDeltas } = usePlanDeltas();
+  useEffect(() => {
+    const deltas: Record<string, [number, number, number]> = {};
+    for (const t of items) {
+      const fy = getFiscalYear(t.targetDate);
+      if (!fy) continue;
+      if (!deltas[fy]) deltas[fy] = [0, 0, 0];
+      deltas[fy][1] += 1; // 一般正社員として+1
+    }
+    setSourceDeltas('transferin', deltas);
+  }, [items, setSourceDeltas]);
 
   const filtered = items.filter((t) => t.name.includes(search) || t.sourceOrg.includes(search) || t.no.includes(search));
   const fyItems  = items.filter((t) => NEXT_FY_MONTHS.has(t.targetDate));
@@ -505,40 +549,41 @@ export default function HiringPlansPage() {
   const [tab, setTab] = useState<'hiring' | 'transferin'>('hiring');
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <AppBar roleIcon="person" roleLabel="部長：田中太郎" />
-      <TabBar />
+    <DeptPageShell>
+      {/* サブタブバー */}
+      <div
+        className="flex items-center px-12 shrink-0"
+        style={{ backgroundColor: '#FFFFFF', height: 40, borderBottom: '1px solid #E0E0E0' }}
+      >
+        {([
+          { key: 'hiring',     label: '採用計画' },
+          { key: 'transferin', label: '転入情報' },
+        ] as const).map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setTab(key)}
+            className="flex items-center h-10 px-4 text-[13px] font-medium transition-colors"
+            style={{
+              color: tab === key ? '#1976D2' : '#757575',
+              fontWeight: tab === key ? 600 : 500,
+              boxShadow: tab === key ? 'inset 0 -2px 0 0 #1976D2' : 'none',
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-      <main className="flex flex-col gap-0 p-6">
+      <main className="flex flex-col gap-6 p-6" style={{ backgroundColor: '#FAFAFA' }}>
         {/* Page header */}
-        <div className="flex items-center justify-between mb-4 shrink-0">
-          <div>
-            <h1 className="text-2xl font-medium text-on-surface">転入・採用計画</h1>
-            <p className="text-sm text-on-surface-variant mt-0.5">第一開発部 2026年度</p>
-          </div>
+        <div className="shrink-0">
+          <h1 className="text-2xl text-on-surface">転入・採用計画</h1>
+          <p className="text-sm text-on-surface-variant mt-1">転入・採用計画の管理</p>
         </div>
 
-        {/* Sub tabs */}
-        <div className="flex gap-0 border-b border-outline shrink-0 mb-4">
-          {([
-            { key: 'hiring',     label: '採用計画' },
-            { key: 'transferin', label: '転入情報' },
-          ] as const).map(({ key, label }) => (
-            <button key={key} onClick={() => setTab(key)}
-              className="px-6 h-10 text-sm font-medium border-b-2 transition-colors"
-              style={{
-                color: tab === key ? '#1976D2' : '#757575',
-                borderColor: tab === key ? '#1976D2' : 'transparent',
-              }}>
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Section content */}
-        <div>
-          {tab === 'hiring' ? <HiringSection /> : <TransferInSection />}
-        </div>
+        {/* Section content — 両方マウントしてデルタ発行を維持 */}
+        <div className={tab === 'hiring' ? '' : 'hidden'}><HiringSection /></div>
+        <div className={tab === 'transferin' ? '' : 'hidden'}><TransferInSection /></div>
       </main>
 
       <style jsx global>{`
@@ -557,6 +602,6 @@ export default function HiringPlansPage() {
         }
         .input-base:focus { border-color: #1976D2; }
       `}</style>
-    </div>
+    </DeptPageShell>
   );
 }

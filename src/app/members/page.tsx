@@ -1,9 +1,9 @@
 'use client';
-import AppBar from '@/components/AppBar';
-import TabBar from '@/components/TabBar';
+import DeptPageShell from '@/components/DeptPageShell';
 import StatusBadge from '@/components/StatusBadge';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { usePlanDeltas, getFiscalYear } from '@/contexts/PlanDeltaContext';
 
 function Icon({ name, size = 24, className = '' }: { name: string; size?: number; className?: string }) {
   return (
@@ -58,11 +58,12 @@ interface PlanForm {
   comment: string;
 }
 
+const OWN_DEPT = '第一開発部';
 const EMPTY_FORM: PlanForm = {
   transferType: '転出（異動）',
   scope: '本部内',
   center: CENTER_OPTIONS[0],
-  destDept: DEPT_OPTIONS[CENTER_OPTIONS[0]][0],
+  destDept: (DEPT_OPTIONS[CENTER_OPTIONS[0]] ?? []).filter(d => d !== OWN_DEPT)[0] ?? '',
   destFreeText: '',
   transferDate: '2026年7月',
   comment: '',
@@ -93,6 +94,10 @@ const TRANSFER_TYPES = ['転出（異動）', '退職'];
 const MONTHS = [
   '2026年4月', '2026年5月', '2026年6月', '2026年7月', '2026年8月', '2026年9月',
   '2026年10月', '2026年11月', '2026年12月', '2027年1月', '2027年2月', '2027年3月',
+  '2027年4月', '2027年5月', '2027年6月', '2027年7月', '2027年8月', '2027年9月',
+  '2027年10月', '2027年11月', '2027年12月', '2028年1月', '2028年2月', '2028年3月',
+  '2028年4月', '2028年5月', '2028年6月', '2028年7月', '2028年8月', '2028年9月',
+  '2028年10月', '2028年11月', '2028年12月', '2029年1月', '2029年2月', '2029年3月',
 ];
 
 // ---------- 異動計画モーダル（入力・編集共用） ----------
@@ -102,6 +107,7 @@ function PlanModal({
   isEdit,
   onClose,
   onSave,
+  onDelete,
   onDetail,
 }: {
   member: Member;
@@ -109,13 +115,16 @@ function PlanModal({
   isEdit: boolean;
   onClose: () => void;
   onSave: (form: PlanForm) => void;
+  onDelete?: () => void;
   onDetail: () => void;
 }) {
   const [form, setForm] = useState<PlanForm>(initial);
-  const deptList = DEPT_OPTIONS[form.center] ?? [];
+  const ownDept = member.dept;
+  const deptList = (DEPT_OPTIONS[form.center] ?? []).filter(d => d !== ownDept);
 
   const handleCenterChange = (center: string) => {
-    setForm({ ...form, center, destDept: DEPT_OPTIONS[center]?.[0] ?? '' });
+    const filtered = (DEPT_OPTIONS[center] ?? []).filter(d => d !== ownDept);
+    setForm({ ...form, center, destDept: filtered[0] ?? '' });
   };
 
   const resolvedDest =
@@ -207,14 +216,25 @@ function PlanModal({
 
         {/* Footer */}
         <div className="flex items-center justify-between px-5 py-4 border-t border-outline shrink-0">
-          {/* 左：詳細ボタン */}
-          <button
-            onClick={onDetail}
-            className="flex items-center gap-1.5 text-sm text-primary px-4 h-9 rounded-full border border-primary hover:bg-primary-container"
-          >
-            <Icon name="open_in_new" size={16} className="text-primary" />
-            詳細
-          </button>
+          {/* 左：詳細 + 削除 */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onDetail}
+              className="flex items-center gap-1.5 text-sm text-primary px-4 h-9 rounded-full border border-primary hover:bg-primary-container"
+            >
+              <Icon name="open_in_new" size={16} className="text-primary" />
+              詳細
+            </button>
+            {isEdit && onDelete && (
+              <button
+                onClick={onDelete}
+                className="flex items-center gap-1.5 text-sm text-error px-4 h-9 rounded-full border border-error hover:bg-error-container"
+              >
+                <Icon name="delete" size={16} className="text-error" />
+                取消
+              </button>
+            )}
+          </div>
           {/* 右：操作ボタン群 */}
           <div className="flex items-center gap-2">
             <button onClick={onClose}
@@ -255,6 +275,25 @@ export default function MembersPage() {
   const [search, setSearch] = useState('');
   const [modalMember, setModalMember] = useState<Member | null>(null);
   const [modalIsEdit, setModalIsEdit] = useState(false);
+
+  // サマリへデルタを発行
+  const MANAGER_RANKS = useMemo(() => new Set(['課長', '部長', '次長']), []);
+  const { setSourceDeltas } = usePlanDeltas();
+  useEffect(() => {
+    const deltas: Record<string, [number, number, number]> = {};
+    for (const m of members) {
+      if (!m.transferType || !m.transferDate) continue;
+      const fy = getFiscalYear(m.transferDate);
+      if (!fy) continue;
+      if (!deltas[fy]) deltas[fy] = [0, 0, 0];
+      const isManager = MANAGER_RANKS.has(m.rank);
+      // 転出・退職はマイナス
+      if (m.transferType === '転出（異動）' || m.transferType === '退職') {
+        deltas[fy][isManager ? 0 : 1] -= 1;
+      }
+    }
+    setSourceDeltas('members', deltas);
+  }, [members, setSourceDeltas, MANAGER_RANKS]);
 
   const filtered = members.filter(
     (m) => m.name.includes(search) || m.empNo.includes(search) || m.dept.includes(search)
@@ -299,7 +338,18 @@ export default function MembersPage() {
     setMembers((prev) =>
       prev.map((m) =>
         m.id === modalMember!.id
-          ? { ...m, destDept: dest, transferDate: form.transferDate, comment: form.comment, approvalStatus: '下書き保存' }
+          ? { ...m, transferType: form.transferType, destDept: dest, transferDate: form.transferDate, comment: form.comment, approvalStatus: '下書き保存' }
+          : m
+      )
+    );
+    closeModal();
+  };
+  const deletePlan = () => {
+    if (!modalMember) return;
+    setMembers((prev) =>
+      prev.map((m) =>
+        m.id === modalMember.id
+          ? { ...m, transferType: '', destDept: '', transferDate: '', comment: '', approvalStatus: '' }
           : m
       )
     );
@@ -317,10 +367,7 @@ export default function MembersPage() {
   });
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <AppBar roleIcon="person" roleLabel="部長：田中太郎" showNotification />
-      <TabBar />
-
+    <DeptPageShell>
       <main className="flex flex-col gap-6 p-6">
         {/* Page header */}
         <div className="flex items-center justify-between shrink-0">
@@ -472,14 +519,31 @@ export default function MembersPage() {
                   {/* アクション */}
                   <div className="w-28 flex items-center justify-center gap-2 shrink-0">
                     {hasPlan ? (
-                      <button
-                        onClick={() => openModal(m, true)}
-                        className="flex items-center gap-1 text-xs font-medium text-on-primary px-3 h-7 rounded"
-                        style={{ backgroundColor: '#1976D2' }}
-                      >
-                        <Icon name="edit" size={14} className="text-on-primary" />
-                        編集
-                      </button>
+                      <>
+                        <button
+                          onClick={() => openModal(m, true)}
+                          className="flex items-center gap-1 text-xs font-medium text-on-primary px-3 h-7 rounded"
+                          style={{ backgroundColor: '#1976D2' }}
+                        >
+                          <Icon name="edit" size={14} className="text-on-primary" />
+                          編集
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMembers((prev) =>
+                              prev.map((x) =>
+                                x.id === m.id
+                                  ? { ...x, transferType: '', destDept: '', transferDate: '', comment: '', approvalStatus: '' }
+                                  : x
+                              )
+                            );
+                          }}
+                          className="p-1 rounded hover:bg-error-container text-on-surface-variant hover:text-error"
+                          title="異動情報を取消"
+                        >
+                          <Icon name="delete" size={14} />
+                        </button>
+                      </>
                     ) : (
                       <button
                         onClick={() => openModal(m, false)}
@@ -510,6 +574,7 @@ export default function MembersPage() {
           isEdit={modalIsEdit}
           onClose={closeModal}
           onSave={savePlan}
+          onDelete={modalIsEdit ? deletePlan : undefined}
           onDetail={() => { closeModal(); router.push('/transfer-plans'); }}
         />
       )}
@@ -530,6 +595,6 @@ export default function MembersPage() {
         }
         .input-base:focus { border-color: #1976D2; }
       `}</style>
-    </div>
+    </DeptPageShell>
   );
 }

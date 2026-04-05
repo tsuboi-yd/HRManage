@@ -1,6 +1,5 @@
 'use client';
-import AppBar from '@/components/AppBar';
-import TabBar from '@/components/TabBar';
+import DeptPageShell from '@/components/DeptPageShell';
 import StatusBadge from '@/components/StatusBadge';
 import { useState } from 'react';
 
@@ -340,9 +339,7 @@ export default function TransferPlansPage() {
   ];
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
-      <AppBar roleIcon="person" roleLabel="部長：田中太郎" />
-      <TabBar />
+    <DeptPageShell>
 
       <main
         className="flex gap-6 p-6"
@@ -406,6 +403,6 @@ export default function TransferPlansPage() {
           )}
         </div>
       </main>
-    </div>
+    </DeptPageShell>
   );
 }

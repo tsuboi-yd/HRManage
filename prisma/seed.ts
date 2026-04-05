@@ -84,6 +84,59 @@ async function main() {
   }
   console.log('✅ 異動計画');
 
+  // ── 定員予定（3年×4部署×3区分） ──────────────────
+  // category: manager(管理職), staff(一般正社員), non_regular(非正規)
+  const quotaData: { orgId: string; fiscalYear: number; category: string; q1: number; q2: number; q3: number; q4: number }[] = [
+    // 第一開発部
+    { orgId: 'd1', fiscalYear: 2026, category: 'manager',     q1: 8,  q2: 8,  q3: 8,  q4: 7  },
+    { orgId: 'd1', fiscalYear: 2026, category: 'staff',       q1: 38, q2: 37, q3: 36, q4: 36 },
+    { orgId: 'd1', fiscalYear: 2026, category: 'non_regular', q1: 6,  q2: 6,  q3: 6,  q4: 6  },
+    { orgId: 'd1', fiscalYear: 2027, category: 'manager',     q1: 7,  q2: 7,  q3: 7,  q4: 7  },
+    { orgId: 'd1', fiscalYear: 2027, category: 'staff',       q1: 35, q2: 34, q3: 33, q4: 32 },
+    { orgId: 'd1', fiscalYear: 2027, category: 'non_regular', q1: 6,  q2: 6,  q3: 6,  q4: 6  },
+    { orgId: 'd1', fiscalYear: 2028, category: 'manager',     q1: 7,  q2: 7,  q3: 6,  q4: 6  },
+    { orgId: 'd1', fiscalYear: 2028, category: 'staff',       q1: 31, q2: 30, q3: 30, q4: 29 },
+    { orgId: 'd1', fiscalYear: 2028, category: 'non_regular', q1: 6,  q2: 6,  q3: 6,  q4: 6  },
+    // 第二開発部
+    { orgId: 'd2', fiscalYear: 2026, category: 'manager',     q1: 5,  q2: 5,  q3: 4,  q4: 4  },
+    { orgId: 'd2', fiscalYear: 2026, category: 'staff',       q1: 20, q2: 19, q3: 19, q4: 18 },
+    { orgId: 'd2', fiscalYear: 2026, category: 'non_regular', q1: 3,  q2: 3,  q3: 3,  q4: 3  },
+    { orgId: 'd2', fiscalYear: 2027, category: 'manager',     q1: 4,  q2: 4,  q3: 4,  q4: 4  },
+    { orgId: 'd2', fiscalYear: 2027, category: 'staff',       q1: 17, q2: 16, q3: 15, q4: 14 },
+    { orgId: 'd2', fiscalYear: 2027, category: 'non_regular', q1: 3,  q2: 3,  q3: 3,  q4: 3  },
+    { orgId: 'd2', fiscalYear: 2028, category: 'manager',     q1: 4,  q2: 4,  q3: 4,  q4: 3  },
+    { orgId: 'd2', fiscalYear: 2028, category: 'staff',       q1: 13, q2: 12, q3: 12, q4: 12 },
+    { orgId: 'd2', fiscalYear: 2028, category: 'non_regular', q1: 3,  q2: 3,  q3: 3,  q4: 3  },
+    // 品質管理部
+    { orgId: 'd3', fiscalYear: 2026, category: 'manager',     q1: 5,  q2: 5,  q3: 5,  q4: 5  },
+    { orgId: 'd3', fiscalYear: 2026, category: 'staff',       q1: 25, q2: 25, q3: 24, q4: 23 },
+    { orgId: 'd3', fiscalYear: 2026, category: 'non_regular', q1: 4,  q2: 4,  q3: 4,  q4: 4  },
+    { orgId: 'd3', fiscalYear: 2027, category: 'manager',     q1: 5,  q2: 5,  q3: 4,  q4: 4  },
+    { orgId: 'd3', fiscalYear: 2027, category: 'staff',       q1: 22, q2: 21, q3: 21, q4: 20 },
+    { orgId: 'd3', fiscalYear: 2027, category: 'non_regular', q1: 4,  q2: 4,  q3: 4,  q4: 4  },
+    { orgId: 'd3', fiscalYear: 2028, category: 'manager',     q1: 4,  q2: 4,  q3: 4,  q4: 4  },
+    { orgId: 'd3', fiscalYear: 2028, category: 'staff',       q1: 19, q2: 19, q3: 18, q4: 17 },
+    { orgId: 'd3', fiscalYear: 2028, category: 'non_regular', q1: 4,  q2: 4,  q3: 4,  q4: 4  },
+    // 品質保証部
+    { orgId: 'd4', fiscalYear: 2026, category: 'manager',     q1: 4,  q2: 4,  q3: 4,  q4: 3  },
+    { orgId: 'd4', fiscalYear: 2026, category: 'staff',       q1: 16, q2: 15, q3: 15, q4: 15 },
+    { orgId: 'd4', fiscalYear: 2026, category: 'non_regular', q1: 3,  q2: 3,  q3: 3,  q4: 3  },
+    { orgId: 'd4', fiscalYear: 2027, category: 'manager',     q1: 3,  q2: 3,  q3: 3,  q4: 3  },
+    { orgId: 'd4', fiscalYear: 2027, category: 'staff',       q1: 15, q2: 14, q3: 14, q4: 13 },
+    { orgId: 'd4', fiscalYear: 2027, category: 'non_regular', q1: 3,  q2: 3,  q3: 3,  q4: 3  },
+    { orgId: 'd4', fiscalYear: 2028, category: 'manager',     q1: 3,  q2: 3,  q3: 3,  q4: 3  },
+    { orgId: 'd4', fiscalYear: 2028, category: 'staff',       q1: 13, q2: 12, q3: 12, q4: 11 },
+    { orgId: 'd4', fiscalYear: 2028, category: 'non_regular', q1: 3,  q2: 3,  q3: 3,  q4: 3  },
+  ];
+  for (const q of quotaData) {
+    await prisma.headcountQuota.upsert({
+      where: { orgId_fiscalYear_category: { orgId: q.orgId, fiscalYear: q.fiscalYear, category: q.category } },
+      update: {},
+      create: q,
+    });
+  }
+  console.log('✅ 定員予定（36件）');
+
   // ── スナップショット ──────────────────────────────
   await prisma.snapshot.upsert({
     where: { id: 's1' },
@@ -101,6 +154,67 @@ async function main() {
     create: { id:'s3', label:'2026年1月6日時点',  date:'2026-01-06', comment:'年始スナップショット' },
   });
   console.log('✅ スナップショット');
+
+  // ── メンバー（15件） ──────────────────────────────
+  const members = [
+    { id: 'm1',  empNo: 'EMP-001', name: '佐藤 一郎',   orgId: 'd1', rank: '主任',   transferType: '転出（異動）', destDept: '第二開発部',  transferDate: '2026年7月', comment: 'スキル活用のため',         approvalStatus: '承認申請中', retirementDate: '2031年3月' },
+    { id: 'm2',  empNo: 'EMP-002', name: '田中 花子',   orgId: 'd1', rank: '一般',   transferType: '退職',         destDept: '—',           transferDate: '2026年6月', comment: '一身上の都合',             approvalStatus: '下書き保存',  retirementDate: '' },
+    { id: 'm3',  empNo: 'EMP-003', name: '高橋 達大',   orgId: 'd1', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '2038年3月' },
+    { id: 'm4',  empNo: 'EMP-004', name: '山田 悠明',   orgId: 'd1', rank: '主任',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '2029年3月' },
+    { id: 'm5',  empNo: 'EMP-005', name: '中村 大樹',   orgId: 'd1', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '' },
+    { id: 'm6',  empNo: 'EMP-006', name: '鈴木 健二',   orgId: 'd1', rank: '主任',   transferType: '転出（異動）', destDept: '品質管理部',  transferDate: '2026年7月', comment: '品質部門強化のため',       approvalStatus: '下書き保存',  retirementDate: '2027年3月' },
+    { id: 'm7',  empNo: 'EMP-007', name: '伊藤 美咲',   orgId: 'd1', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '' },
+    { id: 'm8',  empNo: 'EMP-008', name: '渡辺 浩二',   orgId: 'd1', rank: '課長',   transferType: '退職',         destDept: '—',           transferDate: '2026年9月', comment: '定年退職',                 approvalStatus: '下書き保存',  retirementDate: '2026年9月' },
+    { id: 'm9',  empNo: 'EMP-009', name: '松本 真由美', orgId: 'd1', rank: '一般',   transferType: '退職',         destDept: '—',           transferDate: '2026年8月', comment: '産休・退職',               approvalStatus: '承認申請中', retirementDate: '' },
+    { id: 'm10', empNo: 'EMP-010', name: '小林 純',     orgId: 'd1', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '2033年3月' },
+    { id: 'm11', empNo: 'EMP-011', name: '加藤 裕',     orgId: 'd1', rank: '主任',   transferType: '転出（異動）', destDept: 'インフラ部',  transferDate: '2026年9月', comment: '部門横断プロジェクト対応', approvalStatus: '差戻中',     retirementDate: '2028年3月' },
+    { id: 'm12', empNo: 'EMP-012', name: '中島 由紀',   orgId: 'd1', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '' },
+    { id: 'm13', empNo: 'EMP-013', name: '前田 光',     orgId: 'd1', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '' },
+    { id: 'm14', empNo: 'EMP-014', name: '藤田 誠',     orgId: 'd1', rank: '一般',   transferType: '',             destDept: '',            transferDate: '',          comment: '',                         approvalStatus: '',           retirementDate: '2030年3月' },
+    { id: 'm15', empNo: 'EMP-015', name: '岡田 恵',     orgId: 'd1', rank: '副主任', transferType: '転出（異動）', destDept: '西日本地域部', transferDate: '2026年9月', comment: '地域強化施策',             approvalStatus: '下書き保存',  retirementDate: '2032年3月' },
+  ];
+  for (const m of members) {
+    await prisma.member.upsert({
+      where: { id: m.id },
+      update: {},
+      create: m,
+    });
+  }
+  console.log('✅ メンバー（15件）');
+
+  // ── 採用計画（5件） ──────────────────────────────
+  const hiringPlans = [
+    { id: 'hp1', no: 'REC-001', position: 'ソフトウェアエンジニア', orgId: 'd1', type: '中途', count: 2, targetDate: '2026年6月', status: '承認申請中', note: 'バックエンド経験3年以上' },
+    { id: 'hp2', no: 'REC-002', position: 'インフラエンジニア',     orgId: 'd2', type: '中途', count: 1, targetDate: '2026年7月', status: '下書き保存', note: 'クラウド経験必須' },
+    { id: 'hp3', no: 'REC-003', position: '新卒エンジニア（26卒）', orgId: 'd1', type: '新卒', count: 3, targetDate: '2027年3月', status: '承認済み',   note: '情報系学部卒業予定' },
+    { id: 'hp4', no: 'REC-004', position: '品質管理スタッフ',       orgId: 'd3', type: '中途', count: 1, targetDate: '2026年8月', status: '下書き保存', note: 'QA経験者優遇' },
+    { id: 'hp5', no: 'REC-005', position: '業務委託エンジニア',     orgId: 'd1', type: '契約', count: 2, targetDate: '2026年5月', status: '承認申請中', note: '6ヶ月契約・更新あり' },
+  ];
+  for (const hp of hiringPlans) {
+    await prisma.hiringPlan.upsert({
+      where: { id: hp.id },
+      update: {},
+      create: hp,
+    });
+  }
+  console.log('✅ 採用計画（5件）');
+
+  // ── 転入計画（5件） ──────────────────────────────
+  const transferInPlans = [
+    { id: 'ti1', no: 'TIN-001', name: '田村 健一', sourceOrg: '東日本システム部', sourceType: '本部外', destOrgId: 'd1', targetDate: '2026年9月',  status: '承認申請中', comment: 'プロジェクトリード候補',  isInbound: false },
+    { id: 'ti2', no: 'TIN-002', name: '',          sourceOrg: 'XX事業部',         sourceType: '本部外', destOrgId: 'd2', targetDate: '2026年11月', status: '下書き保存', comment: '人選調整中',           isInbound: false },
+    { id: 'ti3', no: 'TIN-003', name: '鈴木 花子', sourceOrg: '品質管理部',       sourceType: '本部内', destOrgId: 'd1', targetDate: '2026年10月', status: '承認待ち',  comment: '品質管理の知見を活用', isInbound: true },
+    { id: 'ti4', no: 'TIN-004', name: '山田 誠',   sourceOrg: 'インフラ部',       sourceType: '本部内', destOrgId: 'd2', targetDate: '2027年1月',  status: '承認待ち',  comment: 'インフラ兼務予定',    isInbound: true },
+    { id: 'ti5', no: 'TIN-005', name: '佐々木 亮', sourceOrg: '地域管理部',       sourceType: '本部内', destOrgId: 'd1', targetDate: '2026年7月',  status: '承認済み',  comment: '異動確定',            isInbound: true },
+  ];
+  for (const ti of transferInPlans) {
+    await prisma.transferInPlan.upsert({
+      where: { id: ti.id },
+      update: {},
+      create: ti,
+    });
+  }
+  console.log('✅ 転入計画（5件）');
 
   console.log('\n🎉 シード完了！');
 }
