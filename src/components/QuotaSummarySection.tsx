@@ -1,10 +1,9 @@
 'use client';
-import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import QuotaSummaryBar, { FiscalYearData } from './QuotaSummaryBar';
 import BulkSubmitModal from './BulkSubmitModal';
 import { usePlanDeltas } from '@/contexts/PlanDeltaContext';
 
-const CATEGORY_MAP: Record<string, number> = { manager: 0, staff: 1, non_regular: 2 };
 const CATEGORY_LABELS = ['管理職（課長以上）', '一般正社員', '非正規'];
 
 // 現員のデフォルト値（第一開発部）
@@ -14,16 +13,15 @@ const DEFAULT_CURRENT = [
   { label: CATEGORY_LABELS[2], count: 4, color: '#F57C00' },
 ];
 
-interface QuotaRow {
-  orgId: string;
-  fiscalYear: number;
-  category: string;
-  q1: number;
-}
+// 定員データ（ハードコード：seed.ts と同じ値）
+const DEFAULT_QUOTAS: Record<string, [number, number, number]> = {
+  '2026': [8, 30, 6],   // manager, staff, non_regular
+  '2027': [7, 35, 6],
+  '2028': [7, 31, 6],
+};
 
 // ── モジュールレベルキャッシュ（タブ切り替えでも保持） ──
 let _cachedQuotas: Record<string, (number | null)[]> | null = null;
-let _cachedOrgId: string | null = null;
 
 interface Props {
   deptName: string;
@@ -35,31 +33,14 @@ export default function QuotaSummarySection({ deptName, orgId = 'd1' }: Props) {
   const [showModal, setShowModal] = useState(false);
 
   const [quotas, setQuotas] = useState<Record<string, (number | null)[]>>(
-    (_cachedOrgId === orgId && _cachedQuotas) ? _cachedQuotas : { '2026': [null,null,null], '2027': [null,null,null], '2028': [null,null,null] }
+    _cachedQuotas ?? {
+      '2026': [...DEFAULT_QUOTAS['2026']],
+      '2027': [...DEFAULT_QUOTAS['2027']],
+      '2028': [...DEFAULT_QUOTAS['2028']],
+    }
   );
-  const fetched = useRef(_cachedOrgId === orgId);
-
-  useEffect(() => {
-    if (fetched.current) return;
-    fetch(`/api/quota-summary?orgId=${orgId}`)
-      .then(r => r.json())
-      .then(data => {
-        const q: Record<string, (number | null)[]> = { '2026': [null,null,null], '2027': [null,null,null], '2028': [null,null,null] };
-        (data.quotas as QuotaRow[]).forEach(row => {
-          const fy = String(row.fiscalYear);
-          const ci = CATEGORY_MAP[row.category];
-          if (q[fy] && ci !== undefined) q[fy][ci] = row.q1;
-        });
-        setQuotas(q);
-        _cachedQuotas = q;
-        _cachedOrgId = orgId;
-        fetched.current = true;
-      })
-      .catch(e => console.error('quota-summary fetch failed:', e));
-  }, [orgId]);
 
   // コンテキストの集約デルタから年度データを構築
-  // 全年度で常に数値表示（データなし＝0）
   const quotaFiscalYears: FiscalYearData[] = useMemo(() => {
     return ['2026', '2027', '2028'].map(year => {
       const d = aggregated[year] ?? [0, 0, 0];
@@ -85,31 +66,21 @@ export default function QuotaSummarySection({ deptName, orgId = 'd1' }: Props) {
       _cachedQuotas = next;
       return next;
     });
-
-    const categoryKeys = ['manager', 'staff', 'non_regular'];
-    fetch('/api/quota-summary', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ orgId, fiscalYear: year, category: categoryKeys[catIdx], q1: value }),
-    }).catch(e => console.error('quota save failed:', e));
-  }, [orgId, quotaFiscalYears]);
+  }, [quotaFiscalYears]);
 
   // ── 一括申請チェックリスト ──
-  // 1. 定員サマリ: 3年分すべてのカテゴリに定員が入力されているか
   const quotasDone = useMemo(() => {
     return ['2026', '2027', '2028'].every(year =>
       quotas[year]?.every(v => v != null)
     );
   }, [quotas]);
 
-  // 2. 異動計画: membersソースにデータがあるか
   const membersDone = useMemo(() => {
     const md = deltas.members;
     if (!md) return false;
     return Object.values(md).some(([m, s, n]) => m !== 0 || s !== 0 || n !== 0);
   }, [deltas]);
 
-  // 3. 退職・採用計画: hiringソースにデータがあるか
   const hiringDone = useMemo(() => {
     const hd = deltas.hiring;
     if (!hd) return false;
