@@ -37,6 +37,21 @@ model Member {
   comment        String   @default("")
   approvalStatus String   @default("")   // 承認申請中, 下書き保存, 差戻中, 承認済み
   retirementDate String   @default("")
+
+  // ── 個人情報拡張 ──
+  lastNameKana       String   @default("")  // 姓カナ
+  firstNameKana      String   @default("")  // 名カナ
+  jobResponsibility  String   @default("")  // 職責: グループ長/課長/部長
+  jobGrade           String   @default("")  // 職階: A1-A7
+  groupType          String   @default("")  // 群類: 管理職/GR3/GR1/GR2
+  spec               String   @default("")  // スペック: GR1/2, GR3以上, 契約社員, 60歳以上, 65歳以上
+  birthDate          String   @default("")  // 生年月日 (YYYY-MM-DD)
+  age                Int?                   // 年齢
+  mandatoryRetirementDate String @default("") // 定年退職日 (YYYY-MM-DD)
+  salaryRegion       String   @default("")  // 給与管理地区
+  isInactive         Boolean  @default(false) // 戦力外フラグ
+  returnDate         String   @default("")  // 戦力復帰時期
+
   org            Organization @relation(fields: [orgId], references: [id])
 }
 
