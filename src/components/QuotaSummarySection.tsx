@@ -5,7 +5,7 @@ import BulkSubmitModal from './BulkSubmitModal';
 import { usePlanDeltas } from '@/contexts/PlanDeltaContext';
 
 const CATEGORY_MAP: Record<string, number> = { manager: 0, staff: 1, non_regular: 2 };
-const CATEGORY_LABELS = ['管理職（課長以上）', '一般正社員', '非正規'];
+const CATEGORY_LABELS = ['管理職', '正社員', '非正規'];
 
 // 現員のデフォルト値（第一開発部）
 const DEFAULT_CURRENT = [
@@ -21,8 +21,9 @@ interface QuotaRow {
   q1: number;
 }
 
-// ── モジュールレベルキャッシュ（タブ切り替えでも保持） ──
+// ── モジュールレベルキャッシュ ──
 let _cachedQuotas: Record<string, (number | null)[]> | null = null;
+let _cachedReasons: Record<string, string[]> | null = null;
 let _cachedOrgId: string | null = null;
 
 interface Props {
@@ -36,6 +37,9 @@ export default function QuotaSummarySection({ deptName, orgId = 'd1' }: Props) {
 
   const [quotas, setQuotas] = useState<Record<string, (number | null)[]>>(
     (_cachedOrgId === orgId && _cachedQuotas) ? _cachedQuotas : { '2026': [null,null,null], '2027': [null,null,null], '2028': [null,null,null] }
+  );
+  const [reasons, setReasons] = useState<Record<string, string[]>>(
+    (_cachedOrgId === orgId && _cachedReasons) ? _cachedReasons : { '2026': ['','',''], '2027': ['','',''], '2028': ['','',''] }
   );
   const fetched = useRef(_cachedOrgId === orgId);
 
@@ -59,23 +63,61 @@ export default function QuotaSummarySection({ deptName, orgId = 'd1' }: Props) {
       .catch(e => console.error('quota-summary fetch failed:', e));
   }, [orgId]);
 
-  // コンテキストの集約デルタから年度データを構築
+  // 充員数（hiringデルタ: 採用計画の合計）を年度ごとに取得
+  const fillingByYear = useMemo(() => {
+    const result: Record<string, [number, number, number]> = {};
+    const hd = deltas.hiring;
+    if (hd) {
+      for (const [year, vals] of Object.entries(hd)) {
+        result[year] = [...vals] as [number, number, number];
+      }
+    }
+    // 転入も充員に加算
+    const td = deltas.transferin;
+    if (td) {
+      for (const [year, vals] of Object.entries(td)) {
+        if (!result[year]) result[year] = [0, 0, 0];
+        result[year][0] += vals[0];
+        result[year][1] += vals[1];
+        result[year][2] += vals[2];
+      }
+    }
+    return result;
+  }, [deltas]);
+
+  // バイネーム確定数（membersデルタ: 異動計画で名前入りの件数、絶対値）
+  const confirmedByYear = useMemo(() => {
+    const result: Record<string, [number, number, number]> = {};
+    const md = deltas.members;
+    if (md) {
+      for (const [year, vals] of Object.entries(md)) {
+        result[year] = [Math.abs(vals[0]), Math.abs(vals[1]), Math.abs(vals[2])] as [number, number, number];
+      }
+    }
+    return result;
+  }, [deltas]);
+
+  // 年度データを構築
   const quotaFiscalYears: FiscalYearData[] = useMemo(() => {
     return ['2026', '2027', '2028'].map(year => {
-      const d = aggregated[year] ?? [0, 0, 0];
+      const filling = fillingByYear[year] ?? [0, 0, 0];
+      const confirmed = confirmedByYear[year] ?? [0, 0, 0];
+      const r = reasons[year] ?? ['', '', ''];
       return {
         year,
-        categories: [
-          { label: CATEGORY_LABELS[0], byname: d[0], quota: quotas[year]?.[0] ?? null },
-          { label: CATEGORY_LABELS[1], byname: d[1], quota: quotas[year]?.[1] ?? null },
-          { label: CATEGORY_LABELS[2], byname: d[2], quota: quotas[year]?.[2] ?? null },
-        ],
+        categories: CATEGORY_LABELS.map((label, ci) => ({
+          label,
+          quota: quotas[year]?.[ci] ?? null,
+          quotaReason: r[ci],
+          byname: filling[ci],
+          bynameConfirmed: confirmed[ci],
+        })),
       };
     });
-  }, [aggregated, quotas]);
+  }, [quotas, reasons, fillingByYear, confirmedByYear]);
 
-  // 定員更新ハンドラ（API保存 + キャッシュ更新）
-  const handleQuotaChange = useCallback((fyIdx: number, catIdx: number, value: number) => {
+  // 定員更新ハンドラ（理由付き）
+  const handleQuotaChange = useCallback((fyIdx: number, catIdx: number, value: number, reason: string) => {
     const year = quotaFiscalYears[fyIdx]?.year;
     if (!year) return;
 
@@ -84,6 +126,13 @@ export default function QuotaSummarySection({ deptName, orgId = 'd1' }: Props) {
       arr[catIdx] = value;
       const next = { ...prev, [year]: arr };
       _cachedQuotas = next;
+      return next;
+    });
+    setReasons(prev => {
+      const arr = [...(prev[year] ?? ['', '', ''])];
+      arr[catIdx] = reason;
+      const next = { ...prev, [year]: arr };
+      _cachedReasons = next;
       return next;
     });
 
@@ -97,9 +146,7 @@ export default function QuotaSummarySection({ deptName, orgId = 'd1' }: Props) {
 
   // ── 一括申請チェックリスト ──
   const quotasDone = useMemo(() => {
-    return ['2026', '2027', '2028'].every(year =>
-      quotas[year]?.every(v => v != null)
-    );
+    return ['2026', '2027', '2028'].every(year => quotas[year]?.every(v => v != null));
   }, [quotas]);
 
   const membersDone = useMemo(() => {
@@ -123,27 +170,9 @@ export default function QuotaSummarySection({ deptName, orgId = 'd1' }: Props) {
   }, [deltas]);
 
   const checkItems = useMemo(() => [
-    {
-      label: '定員・計画サマリ',
-      done: quotasDone,
-      sub: quotasDone ? '3年分の定員数が入力されています' : '定員が未入力の年度があります',
-      linkLabel: quotasDone ? '確認する' : '入力する',
-      href: '/members',
-    },
-    {
-      label: '異動計画',
-      done: membersDone,
-      sub: membersDone ? `${memberCount}件の異動計画が登録されています` : '異動計画が未登録です',
-      linkLabel: membersDone ? '確認する' : '入力する',
-      href: '/members',
-    },
-    {
-      label: '退職・採用計画',
-      done: hiringDone,
-      sub: hiringDone ? '採用計画が登録されています' : '採用計画が未入力です',
-      linkLabel: hiringDone ? '確認する' : '入力する',
-      href: '/retirement-plans',
-    },
+    { label: '定員・計画サマリ', done: quotasDone, sub: quotasDone ? '3年分の定員数が入力されています' : '定員が未入力の年度があります', linkLabel: quotasDone ? '確認する' : '入力する', href: '/members' },
+    { label: '異動計画', done: membersDone, sub: membersDone ? `${memberCount}件の異動計画が登録されています` : '異動計画が未登録です', linkLabel: membersDone ? '確認する' : '入力する', href: '/members' },
+    { label: '退職・採用計画', done: hiringDone, sub: hiringDone ? '採用計画が登録されています' : '採用計画が未入力です', linkLabel: hiringDone ? '確認する' : '入力する', href: '/retirement-plans' },
   ], [quotasDone, membersDone, hiringDone, memberCount]);
 
   return (
@@ -159,10 +188,7 @@ export default function QuotaSummarySection({ deptName, orgId = 'd1' }: Props) {
         <BulkSubmitModal
           items={checkItems}
           onClose={() => setShowModal(false)}
-          onSubmit={() => {
-            setShowModal(false);
-            alert('一括申請が完了しました');
-          }}
+          onSubmit={() => { setShowModal(false); alert('一括申請が完了しました'); }}
         />
       )}
     </div>
